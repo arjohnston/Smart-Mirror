@@ -20,7 +20,8 @@ ui_locale = '' # e.g. 'fr_FR' fro French, '' as default
 time_format = 12 # 12 or 24
 date_format = "%b %d, %Y" # check python doc for strftime() for options
 news_country_code = 'us'
-weather_api_token = '<TOKEN>' # create account at https://darksky.net/dev/
+weather_api_token = 'token' # create account at https://darksky.net/dev/
+location_api_token = 'token' # create account at https://ipstack.com/signup/free
 weather_lang = 'en' # see https://darksky.net/dev/docs/forecast for full list of language parameters values
 weather_unit = 'us' # see https://darksky.net/dev/docs/forecast for full list of unit parameters values
 latitude = None # Set this if IP location lookup does not work for you (must be a string)
@@ -137,7 +138,7 @@ class Weather(Frame):
 
             if latitude is None and longitude is None:
                 # get location
-                location_req_url = "http://freegeoip.net/json/%s" % self.get_ip()
+                location_req_url = "http://api.ipstack.com/%s?access_key=%s&format=1" % (self.get_ip(), location_api_token)
                 r = requests.get(location_req_url)
                 location_obj = json.loads(r.text)
 

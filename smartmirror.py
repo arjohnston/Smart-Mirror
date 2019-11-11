@@ -10,22 +10,35 @@ import requests
 import json
 import traceback
 import feedparser
+import os.path
 
 from PIL import Image, ImageTk
 from contextlib import contextmanager
+from os import path
 
 LOCALE_LOCK = threading.Lock()
 
+enable_clock = True
+clock_time_format = 12
+enable_news = True
+enable_weather = True
+enable_dynamic_weather = True
+location_api_token = 'token'
+weather_api_token = 'token'
+latitude = None
+longitude = None
+
 ui_locale = '' # e.g. 'fr_FR' fro French, '' as default
-time_format = 12 # 12 or 24
+#time_format = 12 # 12 or 24
 date_format = "%b %d, %Y" # check python doc for strftime() for options
 news_country_code = 'us'
-weather_api_token = 'token' # create account at https://darksky.net/dev/
-location_api_token = 'token' # create account at https://ipstack.com/signup/free
+#weather_api_token = 'token' # create account at https://darksky.net/dev/
+#location_api_token = 'token' # create account at https://ipstack.com/signup/free
 weather_lang = 'en' # see https://darksky.net/dev/docs/forecast for full list of language parameters values
 weather_unit = 'us' # see https://darksky.net/dev/docs/forecast for full list of unit parameters values
-latitude = None # Set this if IP location lookup does not work for you (must be a string)
-longitude = None # Set this if IP location lookup does not work for you (must be a string)
+#latitude = None # Set this if IP location lookup does not work for you (must be a string)
+#longitude = None # Set this if IP location lookup does not work for you (must be a string)
+
 xlarge_text_size = 94
 large_text_size = 48
 medium_text_size = 28
@@ -39,6 +52,51 @@ def setlocale(name): #thread proof function to work with locale
             yield locale.setlocale(locale.LC_ALL, name)
         finally:
             locale.setlocale(locale.LC_ALL, saved)
+
+def setVariables():
+    filepath = "config.txt"
+    
+    with open(filepath) as fp:
+        clock = fp.readline()
+        if clock == "y" or clock == "Y":
+            enable_clock = True
+        else:
+            enable_clock = False
+
+        clock_time_format = fp.readline()
+
+        news = fp.readline()
+        if news == "y" or news == "Y":
+            enable_news = True
+        else:
+            enable_news = False
+
+        weather = fp.readline()
+        if weather == "y" or weather == "Y":
+            enable_weather = True
+        else:
+            enable_weather = False
+
+        enable_dynamic_weather = fp.readline()
+        location_api_token = fp.readline()
+        weather_api_token = fp.readline()
+
+        lat = fp.readline()
+        lon = fp.readline()
+        if lat is None:
+            latitude = None
+
+        if lon is None:
+            longitude = None
+
+        #print(enable_clock)
+        #w = FullscreenWindow()
+        #w.tk.mainloop()
+        #cnt = 0
+        
+        #for line in fp:
+        #    print("line {} contents {}".format(cnt, line))
+        #    cnt += 1
 
 # maps open weather icons to
 # icon reading is not impacted by the 'lang' parameter
@@ -75,10 +133,9 @@ class Clock(Frame):
         self.dateLbl = Label(self, text=self.date1, font=('Helvetica', small_text_size), fg="white", bg="black")
         self.dateLbl.pack(side=TOP, anchor=E)
         self.tick()
-
     def tick(self):
         with setlocale(ui_locale):
-            if time_format == 12:
+            if clock_time_format == 12:
                 time2 = time.strftime('%I:%M %p') #hour in 12h format
             else:
                 time2 = time.strftime('%H:%M') #hour in 24h format
@@ -125,7 +182,7 @@ class Weather(Frame):
 
     def get_ip(self):
         try:
-            ip_url = "http://jsonip.com/"
+            ip_url = "https://api6.ipify.org?format=json"
             req = requests.get(ip_url)
             ip_json = json.loads(req.text)
             return ip_json['ip']
@@ -149,6 +206,7 @@ class Weather(Frame):
 
                 # get weather
                 weather_req_url = "https://api.darksky.net/forecast/%s/%s,%s?lang=%s&units=%s" % (weather_api_token, lat,lon,weather_lang,weather_unit)
+
             else:
                 location2 = ""
                 # get weather
@@ -295,6 +353,7 @@ class FullscreenWindow:
 
     def __init__(self):
         self.tk = Tk()
+        self.tk.attributes("-fullscreen", True) # start w/ full screen
         self.tk.configure(background='black')
         self.topFrame = Frame(self.tk, background = 'black')
         self.bottomFrame = Frame(self.tk, background = 'black')
@@ -304,14 +363,20 @@ class FullscreenWindow:
         self.tk.bind("<Return>", self.toggle_fullscreen)
         self.tk.bind("<Escape>", self.end_fullscreen)
         # clock
-        self.clock = Clock(self.topFrame)
-        self.clock.pack(side=RIGHT, anchor=N, padx=100, pady=60)
+        if enable_clock:
+            self.clock = Clock(self.topFrame)
+            self.clock.pack(side=RIGHT, anchor=N, padx=100, pady=60)
+        print(enable_clock)
         # weather
-        self.weather = Weather(self.topFrame)
-        self.weather.pack(side=LEFT, anchor=N, padx=100, pady=60)
+        if enable_weather:
+            self.weather = Weather(self.topFrame)
+            self.weather.pack(side=LEFT, anchor=N, padx=100, pady=60)
+
         # news
-        self.news = News(self.bottomFrame)
-        self.news.pack(side=LEFT, anchor=S, padx=100, pady=60)
+        if enable_news:
+            self.news = News(self.bottomFrame)
+            self.news.pack(side=LEFT, anchor=S, padx=100, pady=60)
+ 
         # calender - removing for now
         # self.calender = Calendar(self.bottomFrame)
         # self.calender.pack(side = RIGHT, anchor=S, padx=100, pady=60)
@@ -327,5 +392,10 @@ class FullscreenWindow:
         return "break"
 
 if __name__ == '__main__':
-    w = FullscreenWindow()
-    w.tk.mainloop()
+    if path.exists("config.txt"):
+        setVariables()
+        print(enable_clock)
+        w = FullscreenWindow()
+        w.tk.mainloop()
+    else:
+        print("Looks like you need to run install.sh with `sudo ./install.sh`")

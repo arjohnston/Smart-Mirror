@@ -29,7 +29,7 @@ function modify_read_write {
 function setup_timer {
 	echo ""
 	echo "Would you like to set up a timer to automatically turn on|off the screen? (Y/n)"
-	
+
 	read setupTimer
 
 	if [ $setupTimer == "y" ] || [ $setupTimer == "Y" ]; then
@@ -39,15 +39,14 @@ function setup_timer {
 		echo "How long do you want it off for (in hours)? "
 		read sleepTime
 
-		( crontab -l ; echo "0 $turnOffTime * * * $PWD/timer.sh" ) | crontab -
+		( crontab -l ; echo "0 $turnOffTime * * * $PWD/timer.sh $sleepTime" ) | crontab -
 
 		#crontab -l > mychron
 		#echo "0 $turnOffTime * * * $PWD/timer.sh" >> mycron
 		#crontab mycron
 		#rm mycron
-	elif [ $setupTimer == "n" ] || [ $setupTimer == "N" ]; then
-		#{}
-	else
+	elif [ $setupTimer != "n" ] && [ $setupTimer != "N" ]; then
+		# ignore if no
 		setup_timer
 	fi
 }
@@ -66,10 +65,6 @@ function setup_smartmirror {
 	echo "Would you like to enable News? (Y/n)"
 	read enableNews
 
-	#if [ $enableNews == "Y" ] || [ $enableNews == "y" ]; then
-		#
-	#fi
-
 	echo "Would you like to enable Weather? (Y/n)"
 	read enableWeather
 
@@ -77,7 +72,7 @@ function setup_smartmirror {
 
 		echo "An API token is required to obtain your location. Alternatively you can enter a static latitude and longitude. Do you want to use an API token? (Y/n)"
        		read enableDynamicWeather
-	
+
 	# get dynamic info for weather
 		if [ $enableDynamicWeather == "Y" ] || [ $enableDynamicWeather == "y" ]; then
 			echo "Create an account at https://ipstack.com/signup/free and enter the location API key:"
@@ -110,7 +105,7 @@ function setup_smartmirror {
 
 function main {
 	must_be_root
-	sudo rm config.txt
+	sudo rm config.txt # remove the current file
 
 	install_dependencies
 	modify_read_write

@@ -18,6 +18,7 @@ from os import path
 
 LOCALE_LOCK = threading.Lock()
 
+# these defaults are not being overwritten from the file. Start is called before this happens
 enable_clock = True
 clock_time_format = 12
 enable_news = True
@@ -29,15 +30,10 @@ latitude = None
 longitude = None
 
 ui_locale = '' # e.g. 'fr_FR' fro French, '' as default
-#time_format = 12 # 12 or 24
 date_format = "%b %d, %Y" # check python doc for strftime() for options
 news_country_code = 'us'
-#weather_api_token = 'token' # create account at https://darksky.net/dev/
-#location_api_token = 'token' # create account at https://ipstack.com/signup/free
 weather_lang = 'en' # see https://darksky.net/dev/docs/forecast for full list of language parameters values
 weather_unit = 'us' # see https://darksky.net/dev/docs/forecast for full list of unit parameters values
-#latitude = None # Set this if IP location lookup does not work for you (must be a string)
-#longitude = None # Set this if IP location lookup does not work for you (must be a string)
 
 xlarge_text_size = 94
 large_text_size = 48
@@ -55,7 +51,16 @@ def setlocale(name): #thread proof function to work with locale
 
 def setVariables():
     filepath = "config.txt"
-    
+    global enable_clock
+    global clock_time_format
+    global enable_news
+    global enable_weather
+    global enable_dynamic_weather
+    global location_api_token
+    global weather_api_token
+    global latitude
+    global longitude
+
     with open(filepath) as fp:
         clock = fp.readline()
         if clock == "y" or clock == "Y":
@@ -89,14 +94,7 @@ def setVariables():
         if lon is None:
             longitude = None
 
-        #print(enable_clock)
-        #w = FullscreenWindow()
-        #w.tk.mainloop()
-        #cnt = 0
-        
-        #for line in fp:
-        #    print("line {} contents {}".format(cnt, line))
-        #    cnt += 1
+    start()
 
 # maps open weather icons to
 # icon reading is not impacted by the 'lang' parameter
@@ -362,11 +360,12 @@ class FullscreenWindow:
         self.state = False
         self.tk.bind("<Return>", self.toggle_fullscreen)
         self.tk.bind("<Escape>", self.end_fullscreen)
+
         # clock
         if enable_clock:
             self.clock = Clock(self.topFrame)
             self.clock.pack(side=RIGHT, anchor=N, padx=100, pady=60)
-        print(enable_clock)
+
         # weather
         if enable_weather:
             self.weather = Weather(self.topFrame)
@@ -376,7 +375,7 @@ class FullscreenWindow:
         if enable_news:
             self.news = News(self.bottomFrame)
             self.news.pack(side=LEFT, anchor=S, padx=100, pady=60)
- 
+
         # calender - removing for now
         # self.calender = Calendar(self.bottomFrame)
         # self.calender.pack(side = RIGHT, anchor=S, padx=100, pady=60)
@@ -391,11 +390,13 @@ class FullscreenWindow:
         self.tk.attributes("-fullscreen", False)
         return "break"
 
+def start():
+    w = FullscreenWindow()
+    w.tk.mainloop()
+
 if __name__ == '__main__':
     if path.exists("config.txt"):
         setVariables()
-        print(enable_clock)
-        w = FullscreenWindow()
-        w.tk.mainloop()
+
     else:
         print("Looks like you need to run install.sh with `sudo ./install.sh`")
